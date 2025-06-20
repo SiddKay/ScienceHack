@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from config import settings
 from logging_config import setup_logging, get_logger
+from app.routers import agents, conversations, visualization
 import uvicorn
 
 # Initialize logging
@@ -52,6 +53,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(agents.router)
+app.include_router(conversations.router)
+app.include_router(visualization.router)
 
 @app.get("/")
 async def root():
