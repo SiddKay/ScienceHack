@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class AnalysisService:
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4o-mini"
+        self.model = "gpt-4o"
         self.observer = ObserverAgent()
     
     def _analyze_mood_transitions(self, messages: List[Message]) -> Tuple[List[Dict], List[Dict], List[Dict]]:
@@ -122,7 +122,7 @@ The markdown report should include:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=5000
             )
             
             result = json.loads(response.choices[0].message.content)

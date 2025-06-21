@@ -9,11 +9,11 @@ from app.models import (
     GenerateResponseRequest, UserResponseRequest,
     ConversationTree, ConversationTreeResponse, Message, AgentConfig, 
     ConversationSetup, MoodEnum, InterventionRequest, InterventionResponse,
-    InterventionType, AnalysisRequest, ConversationAnalysis
+    InterventionType, AnalysisRequest, ConversationAnalysis, ModelProvider
 )
 from app.utils.convtree import conversation_tree_manager
 from app.utils.id_generator import generate_id
-from app.services.openai_service import openai_service
+from app.services.ai_provider_factory import AIProviderFactory
 from app.services.analysis_service import analysis_service
 from app.routers.agents import agents_store
 from logging_config import get_logger
@@ -26,16 +26,41 @@ router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 async def create_conversation(request: CreateConversationRequest):
     """Create a new conversation with new inline agents."""
     try:
+        # Set default model names if not provided
+        agent_a_model_name = request.agent_a_model_name
+        if not agent_a_model_name:
+            default_models = {
+                ModelProvider.openai: "gpt-4o",
+                ModelProvider.mistral: "magistral-small-latest",
+                ModelProvider.google: "gemini-2.5-flash-lite-preview-06-17"
+            }
+            agent_a_model_name = default_models.get(request.agent_a_model_provider, "gpt-4o")
+        
+        agent_b_model_name = request.agent_b_model_name
+        if not agent_b_model_name:
+            default_models = {
+                ModelProvider.openai: "gpt-4o",
+                ModelProvider.mistral: "magistral-small-latest",
+                ModelProvider.google: "gemini-2.5-flash-lite-preview-06-17"
+            }
+            agent_b_model_name = default_models.get(request.agent_b_model_provider, "gpt-4o")
+        
         agent_a = AgentConfig(
             id=generate_id("agent"),
             name=request.agent_a_name,
-            personality_traits=request.agent_a_traits
+            personality_traits=request.agent_a_traits,
+            model_provider=request.agent_a_model_provider,
+            model_name=agent_a_model_name,
+            temperature=request.agent_a_temperature
         )
         
         agent_b = AgentConfig(
             id=generate_id("agent"),
             name=request.agent_b_name,
-            personality_traits=request.agent_b_traits
+            personality_traits=request.agent_b_traits,
+            model_provider=request.agent_b_model_provider,
+            model_name=agent_b_model_name,
+            temperature=request.agent_b_temperature
         )
         
         setup = ConversationSetup(
@@ -109,7 +134,10 @@ async def generate_agent_response(request: GenerateResponseRequest):
         is_agent_a_turn = len(conversation_history) % 2 == 0
         current_agent = tree.setup.agent_a if is_agent_a_turn else tree.setup.agent_b
         
-        response_data = await openai_service.generate_agent_response(
+        # Get the appropriate AI service for the agent's model provider
+        ai_service = AIProviderFactory.get_provider(current_agent.model_provider)
+        
+        response_data = await ai_service.generate_agent_response(
             agent=current_agent,
             setup=tree.setup,
             conversation_history=conversation_history,
@@ -152,7 +180,11 @@ async def add_user_response(request: UserResponseRequest):
         if request.node_id:
             conversation_tree_manager.set_current_branch(request.conversation_id, request.node_id)
         
-        mood = await openai_service.analyze_mood(request.message)
+        # Get the agent to determine which AI service to use
+        agent = tree.setup.agent_a if request.agent_id == tree.setup.agent_a.id else tree.setup.agent_b
+        ai_service = AIProviderFactory.get_provider(agent.model_provider)
+        
+        mood = await ai_service.analyze_mood(request.message)
         
         message = Message(
             id=generate_id("message"),
@@ -242,7 +274,10 @@ async def apply_intervention(request: InterventionRequest):
         is_agent_a_turn = len(conversation_history) % 2 == 0
         current_agent = tree.setup.agent_a if is_agent_a_turn else tree.setup.agent_b
         
-        response_data = await openai_service.apply_intervention(
+        # Get the appropriate AI service for the agent's model provider
+        ai_service = AIProviderFactory.get_provider(current_agent.model_provider)
+        
+        response_data = await ai_service.apply_intervention(
             agent=current_agent,
             setup=tree.setup,
             conversation_history=conversation_history,

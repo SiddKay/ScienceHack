@@ -4,6 +4,8 @@ pydantic
 pydantic-settings
 python-dotenv
 openai
+mistralai
+google-genai
 httpx
 python-multipart
 gunicorn

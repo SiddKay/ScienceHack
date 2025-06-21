@@ -4,7 +4,7 @@
 import os
 import sys
 from typing import List, Literal
-from pydantic import validator, ValidationError
+from pydantic import field_validator, ValidationError
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -17,19 +17,29 @@ class Settings(BaseSettings):
     
     # API Keys
     OPENAI_API_KEY: str = ""
+    MISTRAL_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
     
     # Logging
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG"
     
-    @validator("OPENAI_API_KEY")
-    def validate_openai_key(cls, v, values):
-        if values.get("ENVIRONMENT") == "production" and not v:
+    @field_validator("OPENAI_API_KEY")
+    @classmethod
+    def validate_openai_key(cls, v: str, info) -> str:
+        if info.data.get("ENVIRONMENT") == "production" and not v:
             raise ValueError("OPENAI_API_KEY is required in production environment")
         return v
     
-    @validator("LOG_LEVEL")
-    def set_log_level_by_env(cls, v, values):
-        env = values.get("ENVIRONMENT", "development")
+    @field_validator("MISTRAL_API_KEY", "GOOGLE_API_KEY")
+    @classmethod
+    def validate_provider_keys(cls, v: str) -> str:
+        # Only validate if actually using that provider
+        return v
+    
+    @field_validator("LOG_LEVEL")
+    @classmethod
+    def set_log_level_by_env(cls, v: str, info) -> str:
+        env = info.data.get("ENVIRONMENT", "development")
         if not v:
             return "INFO" if env == "production" else "DEBUG"
         return v

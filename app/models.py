@@ -1,7 +1,7 @@
 # ABOUTME: Data models for agents, conversations, messages and tree nodes
 # ABOUTME: Defines the structure for conflict simulation entities
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Literal
 from datetime import datetime
 from enum import Enum
@@ -17,12 +17,34 @@ class MoodEnum(str, Enum):
     angry = "angry"
 
 
+class ModelProvider(str, Enum):
+    openai = "openai"
+    mistral = "mistral"
+    google = "google"
+
+
 class AgentConfig(BaseModel):
     id: str
     name: str
     personality_traits: str
     behavioral_instructions: Optional[str] = None
+    model_provider: ModelProvider = ModelProvider.openai
+    model_name: str = "gpt-4o"
+    temperature: float = Field(default=0.8, ge=0.1, le=1.0)
     created_at: datetime = Field(default_factory=datetime.now)
+    
+    @field_validator('model_name')
+    @classmethod
+    def validate_model_name(cls, v: str, info) -> str:
+        provider = info.data.get('model_provider')
+        valid_models = {
+            ModelProvider.openai: ["gpt-4o", "gpt-4o-mini"],
+            ModelProvider.mistral: ["mistral-medium-latest", "mistral-large-latest", "magistral-medium-latest", "magistral-small-latest"],
+            ModelProvider.google: ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite-preview-06-17"]
+        }
+        if provider and v not in valid_models.get(provider, []):
+            raise ValueError(f"Invalid model {v} for provider {provider}")
+        return v
 
 
 class ConversationSetup(BaseModel):
@@ -65,6 +87,12 @@ class CreateConversationRequest(BaseModel):
     agent_a_traits: str
     agent_b_name: str
     agent_b_traits: str
+    agent_a_model_provider: Optional[ModelProvider] = ModelProvider.openai
+    agent_a_model_name: Optional[str] = None
+    agent_a_temperature: Optional[float] = 0.8
+    agent_b_model_provider: Optional[ModelProvider] = ModelProvider.openai
+    agent_b_model_name: Optional[str] = None
+    agent_b_temperature: Optional[float] = 0.8
 
 
 class CreateConversationWithAgentsRequest(BaseModel):

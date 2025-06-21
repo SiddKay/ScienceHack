@@ -2,9 +2,9 @@
 # ABOUTME: Handles creating and retrieving agent configurations
 
 from fastapi import APIRouter, HTTPException
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from app.models import AgentConfig
+from app.models import AgentConfig, ModelProvider
 from app.utils.id_generator import generate_id
 from logging_config import get_logger
 
@@ -15,20 +15,38 @@ agents_store: Dict[str, AgentConfig] = {}
 
 
 @router.post("/", response_model=AgentConfig)
-async def create_agent(name: str, personality_traits: str, 
-                      behavioral_instructions: str = None):
-    """Create a new agent configuration."""
+async def create_agent(
+    name: str, 
+    personality_traits: str,
+    behavioral_instructions: Optional[str] = None,
+    model_provider: ModelProvider = ModelProvider.openai,
+    model_name: Optional[str] = None,
+    temperature: float = 0.8
+):
+    """Create a new agent configuration with model and temperature settings."""
     try:
+        # Set default model name based on provider if not specified
+        if not model_name:
+            default_models = {
+                ModelProvider.openai: "gpt-4o",
+                ModelProvider.mistral: "magistral-small-latest",
+                ModelProvider.google: "gemini-2.5-flash-lite-preview-06-17"
+            }
+            model_name = default_models.get(model_provider, "gpt-4o")
+        
         agent_id = generate_id("agent")
         agent = AgentConfig(
             id=agent_id,
             name=name,
             personality_traits=personality_traits,
-            behavioral_instructions=behavioral_instructions
+            behavioral_instructions=behavioral_instructions,
+            model_provider=model_provider,
+            model_name=model_name,
+            temperature=temperature
         )
         agents_store[agent_id] = agent
         
-        logger.info(f"Created agent: {agent.name} (ID: {agent_id})")
+        logger.info(f"Created agent: {agent.name} (ID: {agent_id}) with {model_provider.value}/{model_name}")
         return agent
         
     except Exception as e:
