@@ -13,15 +13,20 @@ router = APIRouter(prefix="/api/visualization", tags=["visualization"])
 
 
 def get_mood_color(mood: MoodEnum) -> str:
-    """Map mood to color for visualization."""
+    """Map mood to color for visualization, matching new pastel frontend color system."""
     mood_colors = {
-        MoodEnum.happy: "#4ade80",      # green-400
-        MoodEnum.excited: "#22c55e",    # green-500
-        MoodEnum.neutral: "#fbbf24",    # yellow-400
-        MoodEnum.calm: "#fde047",       # yellow-300
-        MoodEnum.sad: "#fb923c",        # orange-400
-        MoodEnum.frustrated: "#f87171", # red-400
-        MoodEnum.angry: "#ef4444"       # red-500
+        # Positive moods - Green shades with 200-point difference (pastel)
+        MoodEnum.happy: "#bbf7d0",      # green-200 pastel
+        MoodEnum.excited: "#86efac",    # green-400 pastel
+        
+        # Neutral moods - Yellow shades with 200-point difference (pastel)
+        MoodEnum.neutral: "#fef3c7",    # yellow-200 pastel
+        MoodEnum.calm: "#fde68a",       # yellow-400 pastel
+        
+        # Negative moods - Red/orange gradient with 200-point difference (pastel)
+        MoodEnum.sad: "#fed7aa",        # orange-200 pastel
+        MoodEnum.frustrated: "#fca5a5", # red-400 pastel
+        MoodEnum.angry: "#f87171"       # red-600 pastel
     }
     return mood_colors.get(mood, "#9ca3af")  # gray-400 as default
 
