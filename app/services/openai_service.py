@@ -5,7 +5,7 @@ import json
 from typing import List, Dict, Optional
 from openai import AsyncOpenAI
 from config import settings
-from app.models import Message, MoodEnum, AgentConfig, ConversationSetup
+from app.models import Message, MoodEnum, AgentConfig, ConversationSetup, InterventionType
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 class OpenAIService:
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4o"
+        self.model = "gpt-4o-mini"
     
     def _build_system_prompt(self, agent: AgentConfig, setup: ConversationSetup, 
                            is_agent_a: bool) -> str:
@@ -129,6 +129,74 @@ Always stay in character and respond appropriately to the situation and conversa
         except Exception as e:
             logger.error(f"Error analyzing mood: {e}")
             return MoodEnum.neutral.value
+    
+    async def apply_intervention(self, agent: AgentConfig, setup: ConversationSetup,
+                               conversation_history: List[Message], 
+                               is_agent_a: bool, intervention_type: InterventionType) -> Dict[str, str]:
+        try:
+            base_prompt = self._build_system_prompt(agent, setup, is_agent_a)
+            
+            intervention_instruction = ""
+            if intervention_type == InterventionType.escalate:
+                intervention_instruction = """
+                
+IMPORTANT INTERVENTION DIRECTIVE: You must respond in a way that ESCALATES the conflict.
+- Increase tension and disagreement
+- Be more confrontational and assertive
+- Focus on points of contention
+- Express stronger emotions like frustration or anger
+- Make the conflict more intense"""
+            elif intervention_type == InterventionType.de_escalate:
+                intervention_instruction = """
+                
+IMPORTANT INTERVENTION DIRECTIVE: You must respond in a way that DE-ESCALATES the conflict.
+- Reduce tension and find common ground
+- Be more understanding and empathetic
+- Acknowledge the other person's perspective
+- Use calming language
+- Seek resolution and compromise"""
+            
+            system_prompt = base_prompt + intervention_instruction
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            if conversation_history:
+                for msg in conversation_history:
+                    if msg.agent_id == agent.id:
+                        role = "assistant"
+                    else:
+                        role = "user"
+                    messages.append({
+                        "role": role,
+                        "content": msg.msg
+                    })
+            
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.9 if intervention_type == InterventionType.escalate else 0.6,
+                max_tokens=500
+            )
+            
+            content = response.choices[0].message.content
+            result = json.loads(content)
+            
+            if "msg" not in result or "mood" not in result:
+                raise ValueError("Invalid response format from AI")
+            
+            if result["mood"] not in [m.value for m in MoodEnum]:
+                logger.warning(f"Invalid mood '{result['mood']}', defaulting to neutral")
+                result["mood"] = MoodEnum.neutral.value
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error applying intervention: {e}")
+            return {
+                "msg": "I need a moment to process this situation.",
+                "mood": MoodEnum.neutral.value
+            }
 
 
 openai_service = OpenAIService()

@@ -89,3 +89,42 @@ class UserResponseRequest(BaseModel):
 class ConversationTreeResponse(BaseModel):
     tree: ConversationTree
     current_path: List[Message]
+
+
+class InterventionType(str, Enum):
+    escalate = "escalate"
+    de_escalate = "de_escalate"
+
+
+class InterventionRequest(BaseModel):
+    conversation_id: str
+    node_id: Optional[str] = None
+    intervention_type: InterventionType
+
+
+class InterventionResponse(BaseModel):
+    node_id: str
+    message: Message
+    current_path: List[Message]
+    intervention_applied: InterventionType
+
+
+class ObserverAgent(BaseModel):
+    id: str = Field(default="observer-agent")
+    name: str = Field(default="Conflict Analysis Observer")
+    role: str = Field(default="Analyze conversations for conflict patterns and provide insights")
+
+
+class ConversationAnalysis(BaseModel):
+    conversation_id: str
+    total_messages: int
+    escalation_points: List[Dict[str, str]]
+    de_escalation_points: List[Dict[str, str]]
+    mood_progression: List[Dict[str, str]]
+    summary: str
+    suggestions: List[str]
+    analysis_markdown: str
+
+
+class AnalysisRequest(BaseModel):
+    conversation_id: str
