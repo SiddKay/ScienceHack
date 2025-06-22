@@ -46,13 +46,15 @@ Your personality traits: {agent.personality_traits}
 
 The other agent is {other_agent.name} with these traits: {other_agent.personality_traits}
 
-{agent.behavioral_instructions or ''}
+This is your behaviour for the duration of this conversation (ignore if nothing is provided): {agent.behavioral_instructions or ''}
 
 You must respond to messages in character, considering the conversation history and your personality traits. Your response must be a JSON object with exactly these fields:
 - "msg": Your response message (string)
 - "mood": Your exact mood for this message, which must be one of these values: "happy", "excited", "neutral", "calm", "sad", "frustrated", "angry"
 
-Always stay in character and respond appropriately to the situation and conversation flow."""
+Always stay in character and respond appropriately to the situation and conversation flow.
+
+Make sure to keep your responses short, relevant and maximum 2-3 sentences long."""
         
         return system_prompt
     
@@ -68,7 +70,10 @@ IMPORTANT INTERVENTION DIRECTIVE: You must respond in a way that ESCALATES the c
 - Be more confrontational and assertive
 - Focus on points of contention
 - Express stronger emotions like frustration or anger
-- Make the conflict more intense"""
+- Make the conflict more intense
+- Avoid finding common ground
+- Use provocative language
+- Keep the responses maximum 2-3 sentences long"""
         elif intervention_type == InterventionType.de_escalate:
             intervention_instruction = """
 
@@ -77,7 +82,8 @@ IMPORTANT INTERVENTION DIRECTIVE: You must respond in a way that DE-ESCALATES th
 - Be more understanding and empathetic
 - Acknowledge the other person's perspective
 - Use calming language
-- Seek resolution and compromise"""
+- Seek resolution and compromise
+- Keep the responses maximum 2-3 sentences long"""
         
         return base_prompt + intervention_instruction
     
