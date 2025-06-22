@@ -2,6 +2,8 @@
 
 FastAPI backend for ScienceHack application with Google Cloud Platform deployment support.
 
+> Info: The code for the frontend is available at [ScienceHack Frontend](https://github.com/SiddKay/conflict-orchestrator-playground).
+
 ## Quick Start
 
 ### Prerequisites
@@ -119,7 +121,9 @@ python main.py
 |----------|----------|---------|-------------|
 | `ENVIRONMENT` | No | `development` | `development` or `production` |
 | `PORT` | No | `8000` | Server port |
-| `OPENAI_API_KEY` | Yes (prod) | - | OpenAI API key |
+| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
+| `MISTRAL_API_KEY` | Yes | - | Mistral API key |
+| `GOOGLE_API_KEY` | Yes | - | Google API key |
 | `LOG_LEVEL` | No | `DEBUG` | Logging level |
 
 ## Deployment
